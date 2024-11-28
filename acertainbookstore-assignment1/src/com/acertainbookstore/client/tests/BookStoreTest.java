@@ -519,16 +519,12 @@ public class BookStoreTest {
 		bookRatings.add(new BookRating(book1.getISBN(), -1));
 		client.rateBooks(bookRatings);
 
-		Set<Integer> getRatedBook1 = new HashSet<>();
-		getRatedBook1.add(book1.getISBN());
-		List<StockBook> getBook1 = storeManager.getBooksByISBN(getRatedBook1);
-
-		float book1ISBN = getBook1.get(0).getISBN();
-		float book1Rating = getBook1.get(0).getTotalRating();
-		float book1TimesRated = getBook1.get(0).getNumTimesRated();
-
-		// Make sure the lists equal each other.
-		assertTrue(book1Rating == 5 && book1ISBN == book1.getISBN() && book1TimesRated == 1);
+		try {
+			client.rateBooks(bookRatings);
+			fail("Expected BookStoreException to be thrown");
+		} catch (BookStoreException ex) {
+			assertEquals(BookStoreConstants.RATING, ex.getMessage());
+		}
 	}
 
 	/**
