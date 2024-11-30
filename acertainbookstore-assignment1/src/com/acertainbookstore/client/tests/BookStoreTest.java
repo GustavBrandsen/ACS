@@ -508,8 +508,38 @@ public class BookStoreTest {
 		StockBook book1 = new ImmutableStockBook(TEST_ISBN + 1, "The Art of Computer Programming", "Donald Knuth",
 				(float) 300, NUM_COPIES, 0, 0, 0, false);
 		booksToAdd.add(book1);
-		booksToAdd.add(new ImmutableStockBook(TEST_ISBN + 2, "The C Programming Language",
-				"Dennis Ritchie and Brian Kerninghan", (float) 50, NUM_COPIES, 0, 0, 0, false));
+
+		booksAdded.addAll(booksToAdd);
+
+		storeManager.addBooks(booksToAdd);
+
+		Set<BookRating> bookRatings = new HashSet<>();
+		bookRatings.add(new BookRating(TEST_ISBN + 2, 5));
+
+		try {
+			client.rateBooks(bookRatings);
+			fail("Expected BookStoreException to be thrown");
+		} catch (BookStoreException ex) {
+			assertEquals(BookStoreConstants.ISBN, ex.getMessage());
+		}
+	}
+
+	/**
+	 * Tests that a client cannot rate a book that isn't in the book store.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testRateNonexistentBook() throws BookStoreException {
+		Set<StockBook> booksAdded = new HashSet<StockBook>();
+		booksAdded.add(getDefaultBook());
+
+		Set<StockBook> booksToAdd = new HashSet<StockBook>();
+
+		StockBook book1 = new ImmutableStockBook(TEST_ISBN + 1, "The Art of Computer Programming", "Donald Knuth",
+				(float) 300, NUM_COPIES, 0, 0, 0, false);
+		booksToAdd.add(book1);
 
 		booksAdded.addAll(booksToAdd);
 
@@ -517,7 +547,6 @@ public class BookStoreTest {
 
 		Set<BookRating> bookRatings = new HashSet<>();
 		bookRatings.add(new BookRating(book1.getISBN(), -1));
-		client.rateBooks(bookRatings);
 
 		try {
 			client.rateBooks(bookRatings);

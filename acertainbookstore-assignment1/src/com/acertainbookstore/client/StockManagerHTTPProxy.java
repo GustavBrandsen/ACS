@@ -116,11 +116,11 @@ public class StockManagerHTTPProxy implements StockManager {
 		BookStoreUtility.performHttpExchange(client, bookStoreRequest, serializer.get());
 	}
 
-	public void rateBooks(Set<BookRating> bookRatings) throws BookStoreException {
-		String urlString = serverAddress + "/" + BookStoreMessageTag.RATEBOOKS;
-		BookStoreRequest bookStoreRequest = BookStoreRequest.newPostRequest(urlString, bookRatings);
-		BookStoreUtility.performHttpExchange(client, bookStoreRequest, serializer.get());
-	}
+//	public void rateBooks(Set<BookRating> bookRatings) throws BookStoreException {
+//		String urlString = serverAddress + "/" + BookStoreMessageTag.RATEBOOKS;
+//		BookStoreRequest bookStoreRequest = BookStoreRequest.newPostRequest(urlString, bookRatings);
+//		BookStoreUtility.performHttpExchange(client, bookStoreRequest, serializer.get());
+//	}
 
 	/*
 	 * (non-Javadoc)
@@ -137,13 +137,13 @@ public class StockManagerHTTPProxy implements StockManager {
 	}
 
 
-	public List<StockBook> getTopRatedBooks(Integer numOfBooks) throws BookStoreException {
-		String urlString = serverAddress + "/" + BookStoreMessageTag.GETTOPRATEDBOOKS;
-		BookStoreRequest bookStoreRequest = BookStoreRequest.newPostRequest(urlString, numOfBooks);
-		BookStoreResponse bookStoreResponse = BookStoreUtility.performHttpExchange(client, bookStoreRequest,
-				serializer.get());
-		return (List<StockBook>) bookStoreResponse.getList();
-	}
+//	public List<StockBook> getTopRatedBooks(Integer numOfBooks) throws BookStoreException {
+//		String urlString = serverAddress + "/" + BookStoreMessageTag.GETTOPRATEDBOOKS;
+//		BookStoreRequest bookStoreRequest = BookStoreRequest.newPostRequest(urlString, numOfBooks);
+//		BookStoreResponse bookStoreResponse = BookStoreUtility.performHttpExchange(client, bookStoreRequest,
+//				serializer.get());
+//		return (List<StockBook>) bookStoreResponse.getList();
+//	}
 
 
 	/*
@@ -164,7 +164,7 @@ public class StockManagerHTTPProxy implements StockManager {
 	 * 
 	 * @see com.acertainbookstore.interfaces.StockManager#getBooksInDemand()
 	 */
-//	@Override
+	@Override
 	public List<StockBook> getBooksInDemand() throws BookStoreException {
 		String urlString = serverAddress + "/" + BookStoreMessageTag.GETBOOKSINDEMAND;
 		BookStoreRequest bookStoreRequest = BookStoreRequest.newGetRequest(urlString);

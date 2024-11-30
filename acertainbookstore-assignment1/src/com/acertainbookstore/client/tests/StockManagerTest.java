@@ -2,10 +2,7 @@ package com.acertainbookstore.client.tests;
 
 import static org.junit.Assert.*;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -473,6 +470,50 @@ public class StockManagerTest {
 
 		booksInStoreList = storeManager.getBooks();
 		assertTrue(booksInStoreList.size() == 0);
+	}
+
+	/**
+	 * Tests that all books in demand can be retrieved.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testGetBooksInDemand() throws BookStoreException {
+		Set<StockBook> booksAdded = new HashSet<StockBook>();
+		booksAdded.add(getDefaultBook());
+
+		Set<StockBook> booksToAdd = new HashSet<StockBook>();
+
+		StockBook saleMissedBook = new ImmutableStockBook(TEST_ISBN + 1, "The Art of Computer Programming", "Donald Knuth",
+				(float) 300, NUM_COPIES, 1, 0, 0, false);
+		StockBook buyBook = new ImmutableStockBook(TEST_ISBN + 3, "Test book",
+				"Me", (float) 50, 1, 0, 0, 0, false);
+
+		booksToAdd.add(saleMissedBook);
+		booksToAdd.add(new ImmutableStockBook(TEST_ISBN + 2, "The C Programming Language",
+				"Dennis Ritchie and Brian Kerninghan", (float) 50, NUM_COPIES, 0, 0, 0, false));
+		booksToAdd.add(buyBook);
+
+		booksAdded.addAll(booksToAdd);
+
+		storeManager.addBooks(booksToAdd);
+
+		HashSet<BookCopy> booksToBuy = new HashSet<BookCopy>();
+		booksToBuy.add(new BookCopy(TEST_ISBN+3, 1));
+		client.buyBooks(booksToBuy);
+		try {
+			booksToBuy.add(new BookCopy(TEST_ISBN+3, 1));
+			client.buyBooks(booksToBuy);
+		} catch (Exception ignored) {
+			;
+		}
+
+		// Get books in demand in store.
+		List<StockBook> listDemandBooks = storeManager.getBooksInDemand();
+
+		// Make sure the lists equal each other.
+		assertTrue(listDemandBooks.containsAll(Arrays.asList(saleMissedBook, buyBook)) && listDemandBooks.size() == 2);
 	}
 
 	/**
