@@ -310,9 +310,10 @@ public class CertainBookStore implements BookStore, StockManager {
 	@Override
 	public synchronized List<Book> getTopRatedBooks(int numBooks) throws BookStoreException {
 		//throw new BookStoreException();
-		if (numBooks <= 0) {
+		if (numBooks < 0) {
 			throw new BookStoreException(BookStoreConstants.BOOK_NUM_PARAM);
 		}
+
 		// Get all books.
 		List<StockBook> listAllBooks = getBooks();
 		float avgRating;
@@ -328,13 +329,11 @@ public class CertainBookStore implements BookStore, StockManager {
 			avgRatingISBN.add(pair);
 		}
 
-		//avgRatingISBN.sort((entry1, entry2) -> Float.compare(entry2.getKey(), entry1.getKey()));
 		limBooks = avgRatingISBN.stream()
 				.sorted((entry1, entry2) -> Float.compare(entry2.getKey(), entry1.getKey()))
 				.limit(numBooks)
 				.map(Map.Entry::getValue)
 				.collect(Collectors.toSet());
-		//Comparator.comparing();
 		return getBooks(limBooks);
 	}
 
@@ -362,7 +361,6 @@ public class CertainBookStore implements BookStore, StockManager {
 		}
 
 		return isbnSet.stream().map(isbn -> bookMap.get(isbn).immutableStockBook()).collect(Collectors.toList());
-//		return getBooksByISBN(isbnSet);
 	}
 
 	/*
@@ -372,7 +370,6 @@ public class CertainBookStore implements BookStore, StockManager {
 	 */
 	@Override
 	public synchronized void rateBooks(Set<BookRating> bookRating) throws BookStoreException {
-		// throw new BookStoreException();
 		if (bookRating == null || bookRating.isEmpty()) {
 			throw new BookStoreException(BookStoreConstants.NULL_INPUT);
 		}
@@ -382,21 +379,21 @@ public class CertainBookStore implements BookStore, StockManager {
 		int rating;
 
 		for (BookRating bookR : bookRating) {
-			//validate(bookR);
 			isbn = bookR.getISBN();
 			rating = bookR.getRating();
-
 			book = bookMap.get(isbn);
 
-			if ((rating >= 0) && (rating <= 5)) {
-				if (book != null) {
-					book.addRating(rating);
-				} else {
-					throw new BookStoreException(BookStoreConstants.ISBN);
-				}
-			} else {
+			if ((rating < 0) || (rating > 5)) {
 				throw new BookStoreException(BookStoreConstants.RATING);
+			} else if ((book == null)) {
+				throw new BookStoreException(BookStoreConstants.ISBN);
 			}
+		}
+		for (BookRating bookR : bookRating) {
+			isbn = bookR.getISBN();
+			rating = bookR.getRating();
+			book = bookMap.get(isbn);
+			book.addRating(rating);
 		}
 	}
 

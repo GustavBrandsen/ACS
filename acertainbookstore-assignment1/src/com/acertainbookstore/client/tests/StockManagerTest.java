@@ -473,6 +473,42 @@ public class StockManagerTest {
 	}
 
 	/**
+	 * Tests that an empty list of books is returned when no books are in demand.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testNoBooksInDemand() throws BookStoreException {
+		Set<StockBook> booksAdded = new HashSet<StockBook>();
+		booksAdded.add(getDefaultBook());
+
+		Set<StockBook> booksToAdd = new HashSet<StockBook>();
+
+		StockBook saleMissedBook = new ImmutableStockBook(TEST_ISBN + 1, "The Art of Computer Programming", "Donald Knuth",
+				(float) 300, NUM_COPIES, 0, 0, 0, false);
+		StockBook buyBook = new ImmutableStockBook(TEST_ISBN + 2, "Test book",
+				"Me", (float) 50, 1, 0, 0, 0, false);
+
+		booksToAdd.add(saleMissedBook);
+		booksToAdd.add(buyBook);
+
+		booksAdded.addAll(booksToAdd);
+
+		storeManager.addBooks(booksToAdd);
+
+		HashSet<BookCopy> booksToBuy = new HashSet<BookCopy>();
+		booksToBuy.add(new BookCopy(TEST_ISBN+2, 1));
+		client.buyBooks(booksToBuy);
+
+		// Get books in demand in store.
+		List<StockBook> listDemandBooks = storeManager.getBooksInDemand();
+
+		// Make sure the lists equal each other.
+		assertTrue(listDemandBooks.isEmpty());
+	}
+
+	/**
 	 * Tests that all books in demand can be retrieved.
 	 *
 	 * @throws BookStoreException

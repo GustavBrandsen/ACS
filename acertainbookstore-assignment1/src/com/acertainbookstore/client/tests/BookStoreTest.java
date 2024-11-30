@@ -428,13 +428,13 @@ public class BookStoreTest {
 	}
 
 	/**
-	 * Tests that a client cannot request zero or less top rated books.
+	 * Tests that a client cannot request less than 0 top rated books.
 	 *
 	 * @throws BookStoreException
 	 *             the book store exception
 	 */
 	@Test
-	public void testRequestZeroTopRatedBooks() throws BookStoreException {
+	public void testRequestNegativeTopRatedBooks() throws BookStoreException {
 		Set<StockBook> booksAdded = new HashSet<StockBook>();
 		booksAdded.add(getDefaultBook());
 
@@ -454,7 +454,7 @@ public class BookStoreTest {
 		storeManager.addBooks(booksToAdd);
 
 		try {
-			client.getTopRatedBooks(0);
+			client.getTopRatedBooks(-1);
 			fail("Expected BookStoreException to be thrown");
 		} catch (BookStoreException ex) {
 			assertEquals(BookStoreConstants.BOOK_NUM_PARAM, ex.getMessage());
@@ -493,39 +493,7 @@ public class BookStoreTest {
 	}
 
 	/**
-	 * Tests that a client cannot rate books with a negative rating.
-	 *
-	 * @throws BookStoreException
-	 *             the book store exception
-	 */
-	@Test
-	public void testRateBooksWithNegativeRating() throws BookStoreException {
-		Set<StockBook> booksAdded = new HashSet<StockBook>();
-		booksAdded.add(getDefaultBook());
-
-		Set<StockBook> booksToAdd = new HashSet<StockBook>();
-
-		StockBook book1 = new ImmutableStockBook(TEST_ISBN + 1, "The Art of Computer Programming", "Donald Knuth",
-				(float) 300, NUM_COPIES, 0, 0, 0, false);
-		booksToAdd.add(book1);
-
-		booksAdded.addAll(booksToAdd);
-
-		storeManager.addBooks(booksToAdd);
-
-		Set<BookRating> bookRatings = new HashSet<>();
-		bookRatings.add(new BookRating(TEST_ISBN + 2, 5));
-
-		try {
-			client.rateBooks(bookRatings);
-			fail("Expected BookStoreException to be thrown");
-		} catch (BookStoreException ex) {
-			assertEquals(BookStoreConstants.ISBN, ex.getMessage());
-		}
-	}
-
-	/**
-	 * Tests that a client cannot rate a book that isn't in the book store.
+	 * Tests that a client cannot rate books when one of the books isn't in the book store.
 	 *
 	 * @throws BookStoreException
 	 *             the book store exception
@@ -546,6 +514,45 @@ public class BookStoreTest {
 		storeManager.addBooks(booksToAdd);
 
 		Set<BookRating> bookRatings = new HashSet<>();
+		bookRatings.add(new BookRating(TEST_ISBN + 1, 5));
+		bookRatings.add(new BookRating(TEST_ISBN + 2, 5));
+
+		try {
+			client.rateBooks(bookRatings);
+			fail("Expected BookStoreException to be thrown");
+		} catch (BookStoreException ex) {
+			assertEquals(BookStoreConstants.ISBN, ex.getMessage());
+			assertTrue(book1.getTotalRating() == 0 && book1.getNumTimesRated() == 0);
+		}
+	}
+
+
+	/**
+	 * Tests that a client cannot rate books when one has a negative rating.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testRateBooksWithNegativeRating() throws BookStoreException {
+		Set<StockBook> booksAdded = new HashSet<StockBook>();
+		booksAdded.add(getDefaultBook());
+
+		Set<StockBook> booksToAdd = new HashSet<StockBook>();
+
+		StockBook book1 = new ImmutableStockBook(TEST_ISBN + 1, "The Art of Computer Programming", "Donald Knuth",
+				(float) 300, NUM_COPIES, 0, 0, 0, false);
+		booksToAdd.add(book1);
+		StockBook book2 = new ImmutableStockBook(TEST_ISBN + 2, "The C Programming Language",
+				"Dennis Ritchie and Brian Kerninghan", (float) 50, NUM_COPIES, 0, 0, 0, false);
+		booksToAdd.add(book2);
+
+		booksAdded.addAll(booksToAdd);
+
+		storeManager.addBooks(booksToAdd);
+
+		Set<BookRating> bookRatings = new HashSet<>();
+		bookRatings.add(new BookRating(book2.getISBN(), 5));
 		bookRatings.add(new BookRating(book1.getISBN(), -1));
 
 		try {
@@ -553,6 +560,7 @@ public class BookStoreTest {
 			fail("Expected BookStoreException to be thrown");
 		} catch (BookStoreException ex) {
 			assertEquals(BookStoreConstants.RATING, ex.getMessage());
+			assertTrue(book2.getTotalRating() == 0 && book2.getNumTimesRated() == 0);
 		}
 	}
 
