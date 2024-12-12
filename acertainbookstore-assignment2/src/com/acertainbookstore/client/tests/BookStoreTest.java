@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import java.util.concurrent.*;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -362,6 +364,153 @@ public class BookStoreTest {
 		assertTrue(booksInStorePreTest.containsAll(booksInStorePostTest)
 				&& booksInStorePreTest.size() == booksInStorePostTest.size());
 	}
+
+	@Test
+	public void testCase1() throws BookStoreException, InterruptedException {
+		int initialStock = 100; // Set to a sufficient value
+		Set<StockBook> initialBooks = new HashSet<>();
+		initialBooks.add(new ImmutableStockBook(TEST_ISBN+1, "Test of Thrones", "George RR Testin'", (float) 10, initialStock, 0, 0,0, false));
+		storeManager.addBooks(initialBooks);
+
+		Thread bookStoreThread = new Thread(() -> {
+            try {
+                Set<BookCopy> booksToBuy = new HashSet<>();
+                booksToBuy.add(new BookCopy(TEST_ISBN+1, NUM_COPIES));
+                client.buyBooks(booksToBuy);
+            } catch (BookStoreException ex) {
+                ;
+            }
+        });
+
+		Thread storeManagerThread = new Thread(() -> {
+            try {
+                Set<BookCopy> booksToCopy = new HashSet<>();
+                booksToCopy.add(new BookCopy(TEST_ISBN+1, NUM_COPIES));
+                storeManager.addCopies(booksToCopy);
+            } catch (BookStoreException ex) {
+                ;
+            }
+        });
+
+		bookStoreThread.start();
+		storeManagerThread.start();
+
+		bookStoreThread.join();
+		storeManagerThread.join();
+
+		List<StockBook> finalBooks = storeManager.getBooks();
+		for (StockBook book : finalBooks) {
+			if (book.getISBN() == TEST_ISBN+1) {
+				assertEquals(initialStock, book.getNumCopies());
+			}
+		}
+	}
+
+	@Test
+	public void testCase2() throws BookStoreException, InterruptedException {
+		int TEST_ISBN1 = TEST_ISBN+2;
+		int TEST_ISBN2 = TEST_ISBN+3;
+		int INITIAL_STOCK = 10;
+		int NUM_ITERATIONS = 1000;
+		int NUM_COPIES_TO_BUY = 5;
+
+		try {
+			Set<StockBook> initialBooks = new HashSet<>();
+			initialBooks.add(new ImmutableStockBook(TEST_ISBN1, "Test of Thrones", "George RR Testin'", 10.0f, INITIAL_STOCK, 0, 0, 0, false));
+			initialBooks.add(new ImmutableStockBook(TEST_ISBN2, "Test of Thrones", "George RR Testin'", 12.0f, INITIAL_STOCK, 0, 0, 0, false));
+			storeManager.addBooks(initialBooks);
+		} catch (BookStoreException ex) {
+			;
+		}
+
+		// Create threads
+		Thread client1 = new Thread(() -> {
+			try {
+				Set<BookCopy> booksToBuy = new HashSet<>();
+				booksToBuy.add(new BookCopy(TEST_ISBN1, NUM_COPIES_TO_BUY));
+				booksToBuy.add(new BookCopy(TEST_ISBN2, NUM_COPIES_TO_BUY));
+
+				while (!Thread.currentThread().isInterrupted()) {
+					client.buyBooks(booksToBuy);
+					storeManager.addCopies(booksToBuy);
+				}
+			} catch (BookStoreException ex) {
+				;
+			}
+		});
+
+		Thread client2 = new Thread(() -> {
+			try {
+				for (int i = 0; i < NUM_ITERATIONS; i++) {
+					List<StockBook> booksSnapshot = storeManager.getBooks();
+
+					boolean isConsistent = booksSnapshot.stream().allMatch(book -> {
+						int stock = book.getNumCopies();
+						return stock == INITIAL_STOCK || stock == INITIAL_STOCK - NUM_COPIES_TO_BUY;
+					});
+
+					if (!isConsistent) {
+						throw new AssertionError("Inconsistent snapshot observed");
+					}
+				}
+			} catch (BookStoreException ex) {
+				;
+			}
+		});
+
+		client1.start();
+		client2.start();
+
+		client2.join();
+
+		client1.interrupt();
+		client1.join();
+	}
+
+	// This tests that it locks whenever a client tries to buy a book, as two clients are trying to buy more than half the stock each
+	// One of the clients are thus unable to buy their request
+	@Test
+	public void testCase3() throws BookStoreException, InterruptedException {
+		int initialStock = 10;
+		int NUM_COPIES_TO_BUY = 8;
+		Set<StockBook> initialBooks = new HashSet<>();
+		initialBooks.add(new ImmutableStockBook(TEST_ISBN+4, "Test of Thrones", "George RR Testin'", (float) 10, initialStock, 0, 0,0, false));
+		storeManager.addBooks(initialBooks);
+
+		Thread c1 = new Thread(() -> {
+			try {
+				Set<BookCopy> booksToBuy = new HashSet<>();
+				booksToBuy.add(new BookCopy(TEST_ISBN+4, NUM_COPIES_TO_BUY));
+				client.buyBooks(booksToBuy);
+			} catch (BookStoreException ex) {
+				;
+			}
+		});
+
+		Thread c2 = new Thread(() -> {
+			try {
+				Set<BookCopy> booksToBuy = new HashSet<>();
+				booksToBuy.add(new BookCopy(TEST_ISBN+4, NUM_COPIES_TO_BUY));
+				client.buyBooks(booksToBuy);
+			} catch (BookStoreException ex) {
+				;
+			}
+		});
+
+		c1.start();
+		c2.start();
+
+		c1.join();
+		c2.join();
+
+		List<StockBook> finalBooks = storeManager.getBooks();
+		for (StockBook book : finalBooks) {
+			if (book.getISBN() == TEST_ISBN+4) {
+				assertTrue(book.getNumCopies() >= 0);
+			}
+		}
+	}
+
 
 	/**
 	 * Tear down after class.
