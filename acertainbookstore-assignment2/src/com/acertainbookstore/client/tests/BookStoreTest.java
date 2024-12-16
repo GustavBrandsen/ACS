@@ -66,6 +66,7 @@ public class BookStoreTest {
 			singleLock = (singleLockProperty != null) ? Boolean.parseBoolean(singleLockProperty) : singleLock;
 
 			if (localTest) {
+				System.out.println("singleLock: " + singleLock);
 				if (singleLock) {
 					SingleLockConcurrentCertainBookStore store = new SingleLockConcurrentCertainBookStore();
 					storeManager = store;
@@ -365,6 +366,13 @@ public class BookStoreTest {
 				&& booksInStorePreTest.size() == booksInStorePostTest.size());
 	}
 
+	/**
+	 * Test 1 test case described in Assignment 2.
+	 * Tests that operations that perform conflicting writes to S are atomic.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
 	@Test
 	public void testCase1() throws BookStoreException, InterruptedException {
 		int initialStock = 100; // Set to a sufficient value
@@ -406,6 +414,13 @@ public class BookStoreTest {
 		}
 	}
 
+	/**
+	 * Test 2 test case described in Assignment 2.
+	 * Tests that snapshots returned by getBooks are consistent.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
 	@Test
 	public void testCase2() throws BookStoreException, InterruptedException {
 		int TEST_ISBN1 = TEST_ISBN+2;
@@ -467,8 +482,13 @@ public class BookStoreTest {
 		client1.join();
 	}
 
-	// This tests that it locks whenever a client tries to buy a book, as two clients are trying to buy more than half the stock each
-	// One of the clients are thus unable to buy their request
+	/**
+	 * This tests that it locks whenever a client tries to buy a book, as two clients are trying to buy more than half
+	 * the stock each. One of the clients are thus unable to buy their request
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
 	@Test
 	public void testCase3() throws BookStoreException, InterruptedException {
 		int initialStock = 10;
@@ -507,6 +527,54 @@ public class BookStoreTest {
 		for (StockBook book : finalBooks) {
 			if (book.getISBN() == TEST_ISBN+4) {
 				assertTrue(book.getNumCopies() >= 0);
+			}
+		}
+	}
+
+	/**
+	 * Tests if two clients can copy books at the same time.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testCase4() throws BookStoreException, InterruptedException {
+		int initialStock = 10;
+		int NUM_COPIES_TO_COPY = 8;
+		Set<StockBook> initialBooks = new HashSet<>();
+		initialBooks.add(new ImmutableStockBook(TEST_ISBN+5, "Test of Thrones", "George RR Testin'", (float) 10, initialStock, 0, 0,0, false));
+		storeManager.addBooks(initialBooks);
+
+		Thread c1 = new Thread(() -> {
+			try {
+				Set<BookCopy> booksToCopy = new HashSet<>();
+				booksToCopy.add(new BookCopy(TEST_ISBN+5, NUM_COPIES_TO_COPY));
+				storeManager.addCopies(booksToCopy);
+			} catch (BookStoreException ex) {
+				;
+			}
+		});
+
+		Thread c2 = new Thread(() -> {
+			try {
+				Set<BookCopy> booksToCopy = new HashSet<>();
+				booksToCopy.add(new BookCopy(TEST_ISBN+5, NUM_COPIES_TO_COPY));
+				storeManager.addCopies(booksToCopy);
+			} catch (BookStoreException ex) {
+				;
+			}
+		});
+
+		c1.start();
+		c2.start();
+
+		c1.join();
+		c2.join();
+
+		List<StockBook> finalBooks = storeManager.getBooks();
+		for (StockBook book : finalBooks) {
+			if (book.getISBN() == TEST_ISBN+5) {
+				assertEquals((initialStock+NUM_COPIES_TO_COPY+NUM_COPIES_TO_COPY), book.getNumCopies());
 			}
 		}
 	}
